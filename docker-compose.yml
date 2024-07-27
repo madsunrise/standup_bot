@@ -4,6 +4,7 @@ services:
     container_name: standup
     environment:
       - TELEGRAM_BOT_TOKEN=6728695805:AAHCz3zgKVCSCgf-2ZBV7vs1UYJVH4v7dfM
-      - ADMIN_IDS=225893185,967468929
+      - TELEGRAM_TARGET_CHAT_ID=-4107080120
+      - TELEGRAM_ADMIN_IDS=225893185,967468929
     restart: unless-stopped
     network_mode: host
