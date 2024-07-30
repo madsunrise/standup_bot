@@ -1,26 +1,36 @@
-from models import Event, UserModel
+from models import Event, UserModel, AdministratorState, AdministratorStateDefault
 
 
 class Database:
     def __init__(self):
-        self.is_in_creation_event_state_users = set()
-        self.events = set()
+        self.administrator_state = {}
+        self.created_events = set()
         self.registrations = {}
 
-    def set_is_in_creation_event_state(self, user_id: int, in_creation_state: bool):
-        if in_creation_state:
-            self.is_in_creation_event_state_users.add(user_id)
-        else:
-            self.is_in_creation_event_state_users.remove(user_id)
+    def get_administrator_state(self, user_id: int) -> AdministratorState:
+        if user_id not in self.administrator_state:
+            return AdministratorStateDefault()
+        return self.administrator_state[user_id]
 
-    def is_in_creation_event_state(self, user_id: int) -> bool:
-        return user_id in self.is_in_creation_event_state_users
+    def set_administrator_state(self, user_id: int, state: AdministratorState):
+        self.administrator_state[user_id] = state
+
+    def reset_administrator_state(self, user_id: int):
+        self.administrator_state.pop(user_id, None)
 
     def add_new_event(self, event: Event):
-        self.events.add(event)
+        self.created_events.add(event)
+
+    def update_event(self, event: Event):
+        result = set()
+        for item in self.created_events:
+            if item.uuid == event.uuid:
+                result.add(event)
+            else:
+                result.add(item)
 
     def find_event_by_uuid(self, uuid: str) -> Event | None:
-        for event in self.events:
+        for event in self.created_events:
             if event.uuid == uuid:
                 return event
         return None
@@ -46,8 +56,3 @@ class Database:
         if event_uuid not in self.registrations:
             return []
         return self.registrations[event_uuid]
-
-    def close_registration(self, event_uuid: str):
-        for event in self.events:
-            if event.uuid == event_uuid:
-                event.is_registration_opened = False
