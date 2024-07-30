@@ -1,5 +1,9 @@
 import locale
 import logging
+import threading
+import time
+
+import schedule
 from datetime import timedelta, datetime
 
 import pytz
@@ -330,6 +334,19 @@ def safe_send_message(chat_id: int, text: str):
     except ApiTelegramException:
         pass
 
+
+def run_scheduler():
+    schedule.every().hour.do(do_every_hour)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+def do_every_hour():
+    # метод запускается каждый час
+    pass
+
+scheduler_thread = threading.Thread(target=run_scheduler)
+scheduler_thread.start()
 
 if __name__ == '__main__':
     bot.infinity_polling()
