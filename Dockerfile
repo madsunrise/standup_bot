@@ -22,3 +22,4 @@ ENTRYPOINT python3 ./main.py
 # запуск docker run --name standup --network=host -d --restart unless-stopped -e TELEGRAM_TARGET_CHAT_ID=0 -e TELEGRAM_BOT_TOKEN=your_token -e TELEGRAM_MAINTAINER_ID=0 standup:v1
 
 # Compose, собрать и запустить: docker-compose up --build standup
+# Compose, запустить на сервере: docker-compose up -d (предварительно дописать в docker-compose.yml image: standup:v1)
