@@ -52,6 +52,16 @@ class Database:
                 return True
         return False
 
+    def unregister_user(self, user_id: int, event_uuid: str):
+        if event_uuid not in self.registrations:
+            return
+        registered_users = self.registrations[event_uuid]
+        new_registered_users = []
+        for user_model in registered_users:
+            if user_model.id != user_id:
+                new_registered_users.append(user_model)
+        self.registrations[event_uuid] = new_registered_users
+
     def get_all_users_registered_for_event(self, event_uuid: str) -> list:
         if event_uuid not in self.registrations:
             return []

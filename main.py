@@ -84,9 +84,10 @@ def callback_query(call):
                 return
 
             if database.is_registered_on_event(user_id=user.id, event_uuid=event_uuid):
+                database.unregister_user(user_id=user.id, event_uuid=event_uuid)
                 safe_send_message(
                     chat_id=user.id,
-                    text=f'Ты уже зарегистрирован на мероприятие {event_time_formatted}'
+                    text=f'Регистрация на мероприятие {event_time_formatted} отменена.'
                 )
                 return
 
