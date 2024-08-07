@@ -62,7 +62,7 @@ def on_create_event_command(message):
     )
 
 
-@bot.callback_query_handler(func=lambda call: True)
+"""@bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     try:
         if callback_data_utils.is_register_for_event_callback_data(call.data):
@@ -111,7 +111,94 @@ def callback_query(call):
                 bot.send_message(
                     chat_id=admin_id,
                     text=notification_text
+                )"""
+
+#new block
+@bot.callback_query_handler(func=lambda call: True)
+def callback_query(call):
+    try:
+        if callback_data_utils.is_register_for_event_callback_data(call.data):
+            event_uuid = callback_data_utils.extract_uuid_from_register_for_event_callback_data(call.data)
+            event = database.find_event_by_uuid(uuid=event_uuid)
+            user = create_user_model(call.from_user)
+
+            if event is None:
+                bot.send_message(chat_id=user.id, text='Мероприятие не найдено :(')
+                return
+
+            event_time_formatted = datetime_utils.to_string(event.get_start_time_moscow_tz(), formatters.d_mmm_HH_mm)
+
+            if not event.is_registration_opened:
+                safe_send_message(
+                    chat_id=user.id,
+                    text=f'Регистрация на мероприятие {event_time_formatted} уже завершена.'
                 )
+                return
+
+            if database.is_registered_on_event(user_id=user.id, event_uuid=event_uuid):
+                database.unregister_user(user_id=user.id, event_uuid=event_uuid)
+                safe_send_message(
+                    chat_id=user.id,
+                    text=f'Регистрация на мероприятие {event_time_formatted} отменена.'
+                )
+                return
+
+            # Спрашиваем у пользователя способ регистрации
+            markup = types.InlineKeyboardMarkup()
+            markup.row_width = 2
+            markup.add(
+                types.InlineKeyboardButton("Гость", callback_data='guest_registration_' + event_uuid),
+                types.InlineKeyboardButton("Без условий", callback_data='no_condition_registration_' + event_uuid),
+                types.InlineKeyboardButton("Взнос", callback_data='fee_registration_' + event_uuid)
+            )
+
+            bot.send_message(
+                chat_id=user.id,
+                text=f'Выбери способ регистрации на мероприятие {event_time_formatted}:',
+                reply_markup=markup
+            )
+        elif call.data.startswith('guest_registration_'):
+            handle_registration(call, 'гость')
+        elif call.data.startswith('no_condition_registration_'):
+            handle_registration(call, 'без условий')
+        elif call.data.startswith('fee_registration_'):
+            handle_registration(call, 'взнос')
+    except Exception as e:
+        bot.send_message(chat_id=user.id, text='Произошла ошибка при попытке зарегистрироваться на мероприятие.')
+        print(f"Error during callback_query: {str(e)}")
+
+def handle_registration(call, registration_type):
+    event_uuid = call.data.split('_')[-1]
+    event = database.find_event_by_uuid(uuid=event_uuid)
+    user = create_user_model(call.from_user)
+
+    if event is None:
+        bot.send_message(chat_id=user.id, text='Мероприятие не найдено :(')
+        return
+
+    event_time_formatted = datetime_utils.to_string(event.get_start_time_moscow_tz(), formatters.d_mmm_HH_mm)
+    database.register_user_for_event(
+        user=user,
+        event_uuid=event_uuid,
+        registration_type=registration_type  # учитываем способ регистрации
+    )
+
+    safe_send_message(
+        chat_id=user.id,
+        text=f'Ты успешно зарегистрировался на мероприятие {event_time_formatted} как {registration_type}'
+    )
+
+    notification_text = f'{user.get_full_name()}'
+    if user.username is not None:
+        notification_text += f' (@{user.username})'
+
+    notification_text += f' зарегистрировался на {event_time_formatted} как {registration_type}'
+    for admin_id in administrators:
+        bot.send_message(
+            chat_id=admin_id,
+            text=notification_text
+        )
+#end new block
 
         elif callback_data_utils.is_close_registration_on_event_callback_data(call.data):
             if not is_administrator(call.from_user):
